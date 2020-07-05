@@ -70,9 +70,9 @@ class PlaylistHandler:
     def pretty_print(self):
         print(json.dumps(self.to_dict(), indent=4))
 
-    def export(self, file_name):
-        print("Writing playlist to " + file_name + ".playlist")
-        with open(file_name + ".playlist", 'w') as outfile:
+    def export(self, file_name, path):
+        print("Writing playlist to " + path + file_name + ".playlist")
+        with open(path + file_name + ".playlist", 'w') as outfile:
             json.dump(self.to_dict(), outfile, indent=4)
 
 
