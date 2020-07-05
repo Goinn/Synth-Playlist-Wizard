@@ -50,3 +50,5 @@ song_list.sort_by_bpm()
 bpm = plist.PlaylistHandler.new_playlist("bpm")
 bpm.dataString = song_list.to_playlist()
 bpm.export("bpm", playlist_path)
+
+input("Press ENTER to exit")
