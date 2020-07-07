@@ -99,11 +99,34 @@ class SongHandler:
                    song_dict["bpm"],
                    song_dict["mapper"])
 
+    @classmethod
+    def from_dict_old_format(cls, song_dict):
+        return cls(song_dict["Name"],
+                   song_dict["Author"],
+                   SongHandler.get_difficulty_from_track(song_dict["Track"]),
+                   0,  # TODO calculate length from first and last orb
+                   song_dict["date"],
+                   song_dict["BPM"],
+                   song_dict["Beatmapper"])
+
     @staticmethod
     def reformat_duration(duration):
-        # strip ":" and prefix '0'
-        [minutes, seconds] = str.split(duration, ':')
+        if not duration:
+            minutes = seconds = "0"
+        else:
+            # strip ":" and prefix '0'
+            [minutes, seconds] = str.split(duration, ':')
         return str(int(minutes)) + seconds
+
+    @staticmethod
+    def get_difficulty_from_track(track_data):
+        difficulty = []
+        for dif in track_data:
+            if not track_data[dif] == {} and not track_data[dif] is None:
+                difficulty += [dif]
+            else:
+                difficulty += [""]
+        return difficulty
 
     def filter_difficulty(self):
         i = 0
@@ -138,17 +161,23 @@ class SongLister:
                 try:
                     with zipfile.ZipFile(path + song_file, 'r') as zip_file:
                         for file in zip_file.filelist:
-                            if file.filename == "track.data.json":
+                            if file.filename == "beatmap.meta.bin":
                                 file_date = datetime(*file.date_time[0:6]).strftime("%Y-%m-%d %H:%M:%S")
+
                         try:
                             with open(zip_file.extract("track.data.json"), "r", encoding='utf16') as song_info:
                                 song_dict = json.load(song_info)
                                 song_dict["date"] = file_date
-                                # TODO convert date to human readable
                                 self.song_list.append(SongHandler.from_dict(song_dict))
                         except KeyError:
-                            print(" Old synth file format not supported, " + song_file)
-                            continue
+                            try:
+                                with open(zip_file.extract("beatmap.meta.bin"), "r", encoding='utf-8-sig') as song_info:
+                                    song_dict = json.load(song_info)
+                                    song_dict["date"] = file_date
+                                    self.song_list.append(SongHandler.from_dict_old_format(song_dict))
+                            except KeyError:
+                                print(" Old synth file format not supported, " + song_file)
+                                continue
                 except RuntimeError:
                     print(" File is encrypted, " + song_file)
 

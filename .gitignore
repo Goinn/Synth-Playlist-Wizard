@@ -5,3 +5,7 @@ venv/
 __pycache__/
 *.playlist
 .idea/
+dist/
+build/
+*.spec
+*.bin
