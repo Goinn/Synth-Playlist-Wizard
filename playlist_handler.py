@@ -101,10 +101,11 @@ class SongHandler:
 
     @classmethod
     def from_dict_old_format(cls, song_dict):
+        difficulties = SongHandler.get_difficulty_from_track(song_dict["Track"])
         return cls(song_dict["Name"],
                    song_dict["Author"],
-                   SongHandler.get_difficulty_from_track(song_dict["Track"]),
-                   0,  # TODO calculate length from first and last orb
+                   difficulties,
+                   SongHandler.get_duration_from_track(song_dict["Track"][max(difficulties)]),
                    song_dict["date"],
                    song_dict["BPM"],
                    song_dict["Beatmapper"])
@@ -112,7 +113,7 @@ class SongHandler:
     @staticmethod
     def reformat_duration(duration):
         if not duration:
-            minutes = seconds = "0"
+            return "0"
         else:
             # strip ":" and prefix '0'
             [minutes, seconds] = str.split(duration, ':')
@@ -120,13 +121,25 @@ class SongHandler:
 
     @staticmethod
     def get_difficulty_from_track(track_data):
-        difficulty = []
+        difficulties = []
         for dif in track_data:
             if not track_data[dif] == {} and not track_data[dif] is None:
-                difficulty += [dif]
+                difficulties += [dif]
             else:
-                difficulty += [""]
-        return difficulty
+                difficulties += [""]
+        return difficulties
+
+    @staticmethod
+    def get_duration_from_track(track_data):
+        mini = min(track_data, key=lambda x: float(x))
+        maxi = max(track_data, key=lambda x: float(x))
+        difference = int((float(maxi) - float(mini)) / 1000)  # in seconds
+        seconds = difference % 60
+        if seconds < 10:
+            seconds = ':0' + str(seconds)
+        else:
+            seconds = ':' + str(seconds)
+        return str(difference // 60) + seconds
 
     def filter_difficulty(self):
         i = 0
