@@ -3,6 +3,18 @@ import time
 import os
 import zipfile
 from datetime import datetime
+import requests
+
+try:
+    customs = requests.get("https://synthriderz.com/api/beatmaps?q=&&sort=published_at,DESC").json()
+except KeyError:
+    print("Couldn't get custom song info from syntheriderz.com")
+else:
+    i = 0
+    list_index = {}
+    for songs in customs:
+        list_index[songs['filename_original']] = i
+        i += 1
 
 
 class PlaylistHandler:
@@ -88,6 +100,10 @@ class SongHandler:
         self.bpm = bpm
         self.mapper = mapper
         # TODO set selected difficulty properly
+        # difficulty does not seem to do anything
+
+    def __repr__(self):
+        return self.name + " - " + self.author
 
     @classmethod
     def from_dict(cls, song_dict):
@@ -109,6 +125,16 @@ class SongHandler:
                    song_dict["date"],
                    song_dict["BPM"],
                    song_dict["Beatmapper"])
+
+    @classmethod
+    def from_customs(cls, song_dict):
+        return cls(song_dict["title"],
+                   song_dict["artist"],
+                   song_dict["difficulties"],
+                   song_dict["duration"],
+                   song_dict["published_at"].replace('T', ' ').split('.')[0],
+                   float(song_dict["bpm"]),
+                   song_dict["mapper"])
 
     @staticmethod
     def reformat_duration(duration):
@@ -189,10 +215,17 @@ class SongLister:
                                     song_dict["date"] = file_date
                                     self.song_list.append(SongHandler.from_dict_old_format(song_dict))
                             except KeyError:
-                                print(" Old synth file format not supported, " + song_file)
+                                print("Old synth file format not supported, " + song_file)
                                 continue
                 except RuntimeError:
-                    print(" File is encrypted, " + song_file)
+                    try:
+                        index = list_index[song_file]
+                    except KeyError:
+                        print("Encrypted file not found in synthriderz database " + song_file)
+                        continue
+                    else:
+                        song_dict = customs[index]
+                        self.song_list.append(SongHandler.from_customs(song_dict))
 
     def sort_by_date(self):
         self.song_list.sort(key=lambda song: song.date, reverse=True)

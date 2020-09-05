@@ -2,6 +2,7 @@ import playlist_handler as plist
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 import os
+from gui import *
 
 if os.path.exists("config.bin"):
     with open("config.bin", 'r') as config_file:
@@ -17,7 +18,8 @@ if synth_path == "":
 
 song_path = synth_path + "/CustomSongs/"
 playlist_path = synth_path + "/Playlist/"
-file = "karaoke riders.playlist"
+
+app = GUI(0)
 
 # load songs info into memory
 try:
@@ -51,4 +53,4 @@ bpm = plist.PlaylistHandler.new_playlist("bpm")
 bpm.dataString = song_list.to_playlist()
 bpm.export("bpm", playlist_path)
 
-input("Press ENTER to exit")
+app.MainLoop()
