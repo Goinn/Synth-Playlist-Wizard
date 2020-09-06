@@ -3,6 +3,18 @@ import time
 import os
 import zipfile
 from datetime import datetime
+import requests
+
+try:
+    customs = requests.get("https://synthriderz.com/api/beatmaps?q=&&sort=published_at,DESC").json()
+except KeyError:
+    print("Couldn't get custom song info from syntheriderz.com")
+else:
+    i = 0
+    list_index = {}
+    for songs in customs:
+        list_index[songs['filename_original']] = i
+        i += 1
 
 
 class PlaylistHandler:
@@ -88,6 +100,10 @@ class SongHandler:
         self.bpm = bpm
         self.mapper = mapper
         # TODO set selected difficulty properly
+        # difficulty does not seem to do anything
+
+    def __repr__(self):
+        return self.name + " - " + self.author
 
     @classmethod
     def from_dict(cls, song_dict):
@@ -99,11 +115,57 @@ class SongHandler:
                    song_dict["bpm"],
                    song_dict["mapper"])
 
+    @classmethod
+    def from_dict_old_format(cls, song_dict):
+        difficulties = SongHandler.get_difficulty_from_track(song_dict["Track"])
+        return cls(song_dict["Name"],
+                   song_dict["Author"],
+                   difficulties,
+                   SongHandler.get_duration_from_track(song_dict["Track"][max(difficulties)]),
+                   song_dict["date"],
+                   song_dict["BPM"],
+                   song_dict["Beatmapper"])
+
+    @classmethod
+    def from_customs(cls, song_dict):
+        return cls(song_dict["title"],
+                   song_dict["artist"],
+                   song_dict["difficulties"],
+                   song_dict["duration"],
+                   song_dict["published_at"].replace('T', ' ').split('.')[0],
+                   float(song_dict["bpm"]),
+                   song_dict["mapper"])
+
     @staticmethod
     def reformat_duration(duration):
-        # strip ":" and prefix '0'
-        [minutes, seconds] = str.split(duration, ':')
+        if not duration:
+            return "0"
+        else:
+            # strip ":" and prefix '0'
+            [minutes, seconds] = str.split(duration, ':')
         return str(int(minutes)) + seconds
+
+    @staticmethod
+    def get_difficulty_from_track(track_data):
+        difficulties = []
+        for dif in track_data:
+            if not track_data[dif] == {} and not track_data[dif] is None:
+                difficulties += [dif]
+            else:
+                difficulties += [""]
+        return difficulties
+
+    @staticmethod
+    def get_duration_from_track(track_data):
+        mini = min(track_data, key=lambda x: float(x))
+        maxi = max(track_data, key=lambda x: float(x))
+        difference = int((float(maxi) - float(mini)) / 1000)  # in seconds
+        seconds = difference % 60
+        if seconds < 10:
+            seconds = ':0' + str(seconds)
+        else:
+            seconds = ':' + str(seconds)
+        return str(difference // 60) + seconds
 
     def filter_difficulty(self):
         i = 0
@@ -138,33 +200,46 @@ class SongLister:
                 try:
                     with zipfile.ZipFile(path + song_file, 'r') as zip_file:
                         for file in zip_file.filelist:
-                            if file.filename == "track.data.json":
+                            if file.filename == "beatmap.meta.bin":
                                 file_date = datetime(*file.date_time[0:6]).strftime("%Y-%m-%d %H:%M:%S")
+
                         try:
                             with open(zip_file.extract("track.data.json"), "r", encoding='utf16') as song_info:
                                 song_dict = json.load(song_info)
                                 song_dict["date"] = file_date
-                                # TODO convert date to human readable
                                 self.song_list.append(SongHandler.from_dict(song_dict))
                         except KeyError:
-                            print(" Old synth file format not supported, " + song_file)
-                            continue
+                            try:
+                                with open(zip_file.extract("beatmap.meta.bin"), "r", encoding='utf-8-sig') as song_info:
+                                    song_dict = json.load(song_info)
+                                    song_dict["date"] = file_date
+                                    self.song_list.append(SongHandler.from_dict_old_format(song_dict))
+                            except KeyError:
+                                print("Old synth file format not supported, " + song_file)
+                                continue
                 except RuntimeError:
-                    print(" File is encrypted, " + song_file)
+                    try:
+                        index = list_index[song_file]
+                    except KeyError:
+                        print("Encrypted file not found in synthriderz database " + song_file)
+                        continue
+                    else:
+                        song_dict = customs[index]
+                        self.song_list.append(SongHandler.from_customs(song_dict))
 
     def sort_by_date(self):
         self.song_list.sort(key=lambda song: song.date, reverse=True)
 
-    def sort_by_name(self, reverse: bool):
+    def sort_by_name(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.name, reverse=reverse)
 
-    def sort_by_author(self, reverse: bool):
+    def sort_by_author(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.author, reverse=reverse)
 
-    def sort_by_mapper(self, reverse: bool):
+    def sort_by_mapper(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.mapper, reverse=reverse)
 
-    def sort_by_length(self):
+    def sort_by_duration(self):
         self.song_list.sort(key=lambda song: song.trackDuration)
 
     def sort_by_bpm(self):
