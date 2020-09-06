@@ -5,18 +5,41 @@
 #
 
 import wx
-
+import os
+import playlist_handler as plist
+from tkinter import Tk
+from tkinter.filedialog import askdirectory
+from datetime import datetime
 # begin wxGlade: dependencies
 import gettext
-# end wxGlade
-
-# begin wxGlade: extracode
 # end wxGlade
 
 
 class MyFrame(wx.Frame):
 
     def __init__(self, *args, **kwds):
+        # song info init
+        if os.path.exists("config.bin"):
+            with open("config.bin", 'r') as config_file:
+                synth_path = config_file.readline()
+        else:
+            synth_path = ""
+
+        if synth_path == "":
+            Tk().withdraw()
+            synth_path = askdirectory()
+            with open("config.bin", 'w') as config_file:
+                config_file.write(synth_path)
+
+        self.song_path = synth_path + "/CustomSongs/"
+        self.playlist_path = synth_path + "/Playlist/"
+        # load song info into memory
+        try:
+            self.song_list = plist.SongLister(self.song_path)
+        except FileNotFoundError:
+            print("Could not find Synth Riders directory")
+            os.remove("config.bin")
+            exit(1)
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
@@ -55,6 +78,7 @@ class MyFrame(wx.Frame):
         frame_statusbar_fields = ["frame_statusbar"]
         for i in range(len(frame_statusbar_fields)):
             self.frame_statusbar.SetStatusText(frame_statusbar_fields[i], i)
+        self.frame_statusbar.PushStatusText("")
         # end wxGlade
 
     def __do_layout(self):
@@ -108,6 +132,7 @@ class MyFrame(wx.Frame):
         sizer_14.AddGrowableCol(0)
         sizer_14.AddGrowableCol(1)
         sizer_14.AddGrowableCol(2)
+        self.button_export.Bind(wx.EVT_BUTTON, self.on_export)
 
         self.notebook_1.AddPage(self.notebook_1_pane_1, "Templates")
         # self.notebook_1.AddPage(self.notebook_1_pane_2, "Edit Playlist")
@@ -116,17 +141,67 @@ class MyFrame(wx.Frame):
         self.Layout()
         # end wxGlade
 
+    def on_export(self, event):
+        i = 0
+        # create playlist sorted by date
+        if self.checkbox_date.GetValue():
+            self.song_list.sort_by_date()
+            newest = plist.PlaylistHandler.new_playlist("newest")
+            newest.dataString = self.song_list.to_playlist()
+            newest.export("newest", self.playlist_path)
+            i += 1
+
+        # create playlist sorted by song name z - a
+        if self.checkbox_title.GetValue():
+            self.song_list.sort_by_name(True)
+            ztoa = plist.PlaylistHandler.new_playlist("ztoa")
+            ztoa.dataString = self.song_list.to_playlist()
+            ztoa.export("ztoa", self.playlist_path)
+            i += 1
+
+        # create playlist sorted by duration
+        if self.checkbox_duration.GetValue():
+            self.song_list.sort_by_duration()
+            duration = plist.PlaylistHandler.new_playlist("duration")
+            duration.dataString = self.song_list.to_playlist()
+            duration.export("duration", self.playlist_path)
+            i += 1
+
+        # create playlist sorted by bpm
+        if self.checkbox_bpm.GetValue():
+            self.song_list.sort_by_bpm()
+            bpm = plist.PlaylistHandler.new_playlist("bpm")
+            bpm.dataString = self.song_list.to_playlist()
+            bpm.export("bpm", self.playlist_path)
+            i += 1
+
+        # create playlist sorted by mapper
+        if self.checkbox_mapper.GetValue():
+            self.song_list.sort_by_mapper()
+            bpm = plist.PlaylistHandler.new_playlist("mapper")
+            bpm.dataString = self.song_list.to_playlist()
+            bpm.export("mapper", self.playlist_path)
+            i += 1
+
+        # create playlist sorted by artist
+        if self.checkbox_artist.GetValue():
+            self.song_list.sort_by_author()
+            bpm = plist.PlaylistHandler.new_playlist("artist")
+            bpm.dataString = self.song_list.to_playlist()
+            bpm.export("artist", self.playlist_path)
+            i += 1
+
+        self.frame_statusbar.PushStatusText("Exported {} playlist{} - {}".format(i, 's' * (i != 1), datetime.now()))
 # end of class MyFrame
 
 
 class GUI(wx.App):
+
     def OnInit(self):
         self.frame = MyFrame(None, wx.ID_ANY, "")
         self.SetTopWindow(self.frame)
         self.frame.Show()
         return True
-
-# end of class MyApp
 
 
 if __name__ == "__main__":

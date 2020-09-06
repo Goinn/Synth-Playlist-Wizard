@@ -230,16 +230,16 @@ class SongLister:
     def sort_by_date(self):
         self.song_list.sort(key=lambda song: song.date, reverse=True)
 
-    def sort_by_name(self, reverse: bool):
+    def sort_by_name(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.name, reverse=reverse)
 
-    def sort_by_author(self, reverse: bool):
+    def sort_by_author(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.author, reverse=reverse)
 
-    def sort_by_mapper(self, reverse: bool):
+    def sort_by_mapper(self, reverse: bool = False):
         self.song_list.sort(key=lambda song: song.mapper, reverse=reverse)
 
-    def sort_by_length(self):
+    def sort_by_duration(self):
         self.song_list.sort(key=lambda song: song.trackDuration)
 
     def sort_by_bpm(self):
