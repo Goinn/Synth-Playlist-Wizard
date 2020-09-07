@@ -4,13 +4,15 @@ Synth Playlist Wizard allows you to manage your Synth Riders playlists outside o
 
 ## Disclaimer
 
-The program is not associated with the Synth Riders development team Kluge Interactive.
+This program is not associated with the Synth Riders development team Kluge Interactive.
 
 ## Getting Started
 
-Grab the latest release here: 
-Copy the .exe File into a separate folder and execute it.
+Grab the latest release
+Execute Synth_Playlist_Wizard.exe
 Enter the path to your Synth Riders directory.
+Choose the preset you want to export
+Hit the export button
 
 ### Prerequisites
 
@@ -22,10 +24,12 @@ Not compatible with Oculus Quest version!
 
 ## Features
 
-* load song info from Synth Riders directory (Custom_Songs)
-* create preset playlists (all songs sorted by name in reversed order, by mpm, by length and by date)
+* load song info from Synth Riders directory (Custom_Songs) and from synthriderz.com database
+* create preset playlists (all local songs sorted by name in reversed order, bpm, duration, date, mapper and artist)
 
 ## TODO
+
+Make a proper GUI
 
 ## License
 
